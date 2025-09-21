@@ -1,4 +1,4 @@
-name: Build APK
+name: Build Android APK
 
 on:
   push:
@@ -17,21 +17,55 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.11'
+
+      - name: Install JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install cython buildozer
-          pip install -r requirements.txt
+          sudo apt update
+          sudo apt install -y unzip wget build-essential git
+
+      - name: Install Android SDK command-line tools
+        run: |
+          mkdir -p $HOME/android-sdk/cmdline-tools
+          cd $HOME/android-sdk/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
+          unzip cmdline-tools.zip
+          mkdir -p latest
+          mv cmdline-tools/* latest/
+
+      - name: Accept Android SDK licenses
+        run: |
+          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
+
+      - name: Install Build Tools and Platforms
+        run: |
+          $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Set environment variables
+        run: |
+          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
+          echo "$HOME/android-sdk/build-tools/34.0.0" >> $GITHUB_PATH
+
+      - name: Install Buildozer
+        run: |
+          pip install --upgrade pip
+          pip install buildozer cython
 
       - name: Build APK
         run: |
           buildozer android debug
 
-      - name: Upload APK to Release
-        uses: ncipollo/release-action@v1
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v3
         with:
-          artifacts: bin/*.apk
-          tag: ${{ github.sha }}
-          name: MyApp-debug
+          name: myapp-apk
+          path: |
+            bin/*.apk
+            bin/*/*.apk
