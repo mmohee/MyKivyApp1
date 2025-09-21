@@ -19,16 +19,10 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install JDK
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '11'
-
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y unzip wget build-essential git
+          sudo apt install -y unzip wget build-essential git openjdk-11-jdk
 
       - name: Install Android SDK command-line tools
         run: |
@@ -61,11 +55,3 @@ jobs:
       - name: Build APK
         run: |
           buildozer android debug
-
-      - name: Upload APK as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: myapp-apk
-          path: |
-            bin/*.apk
-            bin/*/*.apk
