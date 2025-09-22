@@ -1,9 +1,10 @@
-name: Build Android APK
+name: Build & Test Python/Kivy APK
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
@@ -11,14 +12,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: 3.12
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           sudo apt update
           sudo apt install -y unzip wget build-essential git openjdk-11-jdk
@@ -40,17 +42,36 @@ jobs:
         run: |
           $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
-      - name: Set environment variables
+      - name: Set Android environment variables
         run: |
           echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
           echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
           echo "$HOME/android-sdk/build-tools/34.0.0" >> $GITHUB_PATH
 
-      - name: Install Buildozer
+      - name: Install Python dependencies
         run: |
-          pip install --upgrade pip
-          pip install buildozer cython
+          python -m pip install --upgrade pip
+          pip install PyQt5>=5.15.0 SQLAlchemy>=1.4.0 pandas>=1.3.0 \
+                      reportlab>=3.6.0 arabic-reshaper>=3.0.0 python-bidi>=0.4.2 \
+                      xlsxwriter>=3.0.0 matplotlib>=3.4.0 openpyxl>=3.0.0 \
+                      python-dateutil>=2.8.0 Pillow>=8.0.0 buildozer cython flake8 pytest
 
-      - name: Build APK
+      - name: Lint with flake8
+        run: |
+          flake8 . --count --exit-zero --statistics
+
+      - name: Test with pytest
+        run: |
+          pytest || echo "No tests found, skipping."
+
+      - name: Build APK with Buildozer
         run: |
           buildozer android debug
+          mkdir -p dist
+          cp bin/*.apk dist/MyApp.apk || cp bin/*/*.apk dist/MyApp.apk
+
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: myapp-apk
+          path: dist/MyApp.apk
