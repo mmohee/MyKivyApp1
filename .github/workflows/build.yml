@@ -15,15 +15,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: 3.12
+          python-version: 3.11
 
       - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y unzip wget build-essential git openjdk-11-jdk
+          sudo apt install -y unzip wget build-essential git openjdk-11-jdk python3-distutils
 
       - name: Install Android SDK command-line tools
         run: |
